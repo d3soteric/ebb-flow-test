@@ -1,12 +1,55 @@
 {
     "AWSTemplateFormatVersion" : "2010-09-09",
-    "Description" : "Create the test environment infrastructure",
-    "Type" : "AWS::EC2::VPC",
-    "Properties" : {
-        "CidrBlock" : "10.0.0.0/16",
-        "EnableDnsHostnames" : "true",
-        "EnableDnsSupport" : "true",
-        "InstanceTenancy" : "shared",
-        "Tags" : [ {"Purpose":"research"} ]
+    "Description" : "Create infrastructure for the test environment",
+    "Resources" :{
+        "CreateFlowTestVPC" : {
+            "Type" : "AWS::EC2::VPC",
+            "Properties" : {
+                "CidrBlock" : "10.0.0.0/16",
+                "EnableDnsHostnames" : "true",
+                "EnableDnsSupport" : "true",
+                "InstanceTenancy" : "default",
+                "Tags" : [ {"id" : "research"} ]
+            }
+        },
+        "CreateFlowTestIGW" : {
+            "Type" : "AWS::EC2::InternetGateway",
+            "Properties" : {
+                "Tags" : [ {"id" : "research"} ]
+            }
+        },
+        "AttachFlowTestIGW" : {
+            "Type" : "AWS::EC2::VPCGatewayAttachment",
+            "Properties" : {
+                "VpcId" : { "Ref" : "CreateFlowTestVPC" },
+                "InternetGatewayId" : { "Ref" : "CreateFlowTestIGW"}
+            }
+        },
+        "CreateFlowTestSubnet" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AssignIpv6AddressOnCreation" : "false",
+                "AvailabilityZone" : "us-west-1",
+                "CidrBlock" : "10.0.1.0/24",
+                "MapPublicIpOnLaunch" : "false",
+                "Tags" : [ {"id" : "research"} ],
+                "VpcId" : { "Ref" : "CreateFlowTestVPC" }
+              }
+          },
+        "CreateFlowTestRouteTable" : {
+            "Type" : "AWS::EC2::RouteTable",
+            "Properties" : {
+                "Tags" : [ {"id" : "research"} ],
+                "VpcId" : "CreateFlowTestVPC"
+            },
+        "CreateFlowTestRoute" : {
+            "Type" : "AWS::EC2::Route",
+            "Properties" : {
+                "DestinationCidrBlock" : "0.0.0.0/0",
+                "GatewayId" : { "Ref" : "CreateFlowTestIGW"},
+                "RouteTableId" : {"Ref" : "CreateFlowTestRouteTable"}
+                }
+            }
+        }
     }
 }
