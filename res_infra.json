@@ -18,37 +18,37 @@
                 "Tags" : [ {"id" : "research"} ]
             }
         },
-        "AttachFlowTestIGW" : {
-            "Type" : "AWS::EC2::VPCGatewayAttachment",
-            "Properties" : {
-                "VpcId" : { "Ref" : "CreateFlowTestVPC" },
-                "InternetGatewayId" : { "Ref" : "CreateFlowTestIGW"}
-            }
-        },
         "CreateFlowTestSubnet" : {
             "Type" : "AWS::EC2::Subnet",
             "Properties" : {
                 "AssignIpv6AddressOnCreation" : "false",
-                "AvailabilityZone" : "us-west-1",
+                "AvailabilityZone" : "us-west-2",
                 "CidrBlock" : "10.0.1.0/24",
                 "MapPublicIpOnLaunch" : "false",
-                "Tags" : [ {"id" : "research"} ],
-                "VpcId" : { "Ref" : "CreateFlowTestVPC" }
-              }
-          },
+                "VpcId" : { "Ref" : "CreateFlowTestVPC" },
+                "Tags" : [ {"id" : "research"} ]
+            }
+        },
         "CreateFlowTestRouteTable" : {
             "Type" : "AWS::EC2::RouteTable",
             "Properties" : {
-                "Tags" : [ {"id" : "research"} ],
-                "VpcId" : "CreateFlowTestVPC"
-            },
-        "CreateFlowTestRoute" : {
+                "VpcId" : "CreateFlowTestVPC",
+                "Tags" : [ {"id" : "research"} ]
+            }
+        },
+        "CreateFlowTestRoute" : { 
             "Type" : "AWS::EC2::Route",
             "Properties" : {
                 "DestinationCidrBlock" : "0.0.0.0/0",
                 "GatewayId" : { "Ref" : "CreateFlowTestIGW"},
                 "RouteTableId" : {"Ref" : "CreateFlowTestRouteTable"}
                 }
+        },
+        "AttachFlowTestIGW" : {
+            "Type" : "AWS::EC2::VPCGatewayAttachment",
+            "Properties" : {
+                "VpcId" : { "Ref" : "CreateFlowTestVPC" },
+                "InternetGatewayId" : { "Ref" : "CreateFlowTestIGW"}
             }
         }
     }
