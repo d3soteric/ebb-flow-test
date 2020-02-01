@@ -9,35 +9,37 @@
                 "EnableDnsHostnames" : "true",
                 "EnableDnsSupport" : "true",
                 "InstanceTenancy" : "default",
-                "Tags" : [ {"id" : "research"} ]
+                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
             }
         },
         "CreateFlowTestIGW" : {
             "Type" : "AWS::EC2::InternetGateway",
             "Properties" : {
-                "Tags" : [ {"id" : "research"} ]
+                "Tags" : [ { "Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
             }
         },
         "CreateFlowTestSubnet" : {
             "Type" : "AWS::EC2::Subnet",
+            "DependsOn" : "CreateFlowTestVPC",
             "Properties" : {
-                "AssignIpv6AddressOnCreation" : "false",
-                "AvailabilityZone" : "us-west-2",
+                "AvailabilityZone" : "us-west-2a",
                 "CidrBlock" : "10.0.1.0/24",
                 "MapPublicIpOnLaunch" : "false",
                 "VpcId" : { "Ref" : "CreateFlowTestVPC" },
-                "Tags" : [ {"id" : "research"} ]
+                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
             }
         },
         "CreateFlowTestRouteTable" : {
             "Type" : "AWS::EC2::RouteTable",
+            "DependsOn" : "CreateFlowTestVPC",
             "Properties" : {
-                "VpcId" : "CreateFlowTestVPC",
-                "Tags" : [ {"id" : "research"} ]
+                "VpcId" : {"Ref" : "CreateFlowTestVPC"},
+                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
             }
         },
         "CreateFlowTestRoute" : { 
             "Type" : "AWS::EC2::Route",
+            "DependsOn" : "CreateFlowTestRouteTable",
             "Properties" : {
                 "DestinationCidrBlock" : "0.0.0.0/0",
                 "GatewayId" : { "Ref" : "CreateFlowTestIGW"},
@@ -46,6 +48,7 @@
         },
         "AttachFlowTestIGW" : {
             "Type" : "AWS::EC2::VPCGatewayAttachment",
+            "DependsOn" : "CreateFlowTestVPC",
             "Properties" : {
                 "VpcId" : { "Ref" : "CreateFlowTestVPC" },
                 "InternetGatewayId" : { "Ref" : "CreateFlowTestIGW"}
