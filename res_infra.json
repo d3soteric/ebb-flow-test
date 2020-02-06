@@ -6,7 +6,7 @@
             "Description" : "Enter the SSH key to be used to access the instance",
             "Type" : "AWS::EC2::KeyPair::KeyName"
         },
-        "SGInboundParameter" : {
+        "SGInboundCIDRParameter" : {
             "Description" : "Enter a CIDR range to allow traffic FROM.  No template validation so will break template if invalid",
             "Type" : "String",
             "Default" : "0.0.0.0/0"
@@ -71,21 +71,20 @@
             "Properties" : {
                 "GroupDescription" : "Basic SG for allowing SSH",
                 "GroupName" : "SSH",
-                "SecurityGroupEgress" : "0.0.0.0/0",
-                "SecurityGroupIngress" : {"Ref" : "SGInboundParameter"},
-                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ],
-                "VpcId" : {"Ref" : "CreateFlowTestVPC"}
+                "SecurityGroupEgress" : [ { "CidrIp" : "0.0.0.0/0", "Description" : "Basic SG for Outbound All", "IpProtocol" : "-1" } ],
+                "SecurityGroupIngress" : [ { "CidrIp" : { "Ref" : "SGInboundCIDRParameter" }, "Description" : "Basic SG for Inbound SSH", "IpProtocol" : "tcp" ,"FromPort" : 22, "ToPort" : 22}],
+                "VpcId" : {"Ref" : "CreateFlowTestVPC"},
+                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
               }
           },
         "FlowTestEC2" : {
             "Type" : "AWS::EC2::Instance",
-            "DependsOn" : [{"Ref" : "FlowTestEC2SG"}, {"Ref" : "CreateFlowTestSubnet"} ],
+            "DependsOn" : ["FlowTestEC2SG", "CreateFlowTestSubnet"],
             "Properties" : {
                 "ImageId" : "ami-062f7200baf2fa504",
                 "InstanceType" : "t2.micro",
                 "KeyName" : {"Ref" : "EC2KeyParameter"},
-                "SecurityGroupIds" : {"Ref" : "FlowTestEC2SG"},
-                "SubnetId" : "CreateFlowTestSubnet",
+                "SubnetId" : {"Ref" : "CreateFlowTestSubnet"},
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
               }
           }
