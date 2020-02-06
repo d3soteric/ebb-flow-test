@@ -1,7 +1,18 @@
 {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Description" : "Create infrastructure for the test environment",
-    "Resources" :{
+    "Parameters" : {
+        "EC2KeyParameter" : {
+            "Description" : "Enter the SSH key to be used to access the instance",
+            "Type" : "AWS::EC2::KeyPair::KeyName"
+        },
+        "SGInboundParameter" : {
+            "Description" : "Enter a CIDR range to allow traffic FROM.  No template validation so will break template if invalid",
+            "Type" : "String",
+            "Default" : "0.0.0.0/0"
+        }
+    },
+    "Resources" : {
         "CreateFlowTestVPC" : {
             "Type" : "AWS::EC2::VPC",
             "Properties" : {
@@ -22,7 +33,7 @@
             "Type" : "AWS::EC2::Subnet",
             "DependsOn" : "CreateFlowTestVPC",
             "Properties" : {
-                "AvailabilityZone" : "us-west-2a",
+                "AvailabilityZone" : "us-east-1a",
                 "CidrBlock" : "10.0.1.0/24",
                 "MapPublicIpOnLaunch" : "false",
                 "VpcId" : { "Ref" : "CreateFlowTestVPC" },
@@ -53,6 +64,30 @@
                 "VpcId" : { "Ref" : "CreateFlowTestVPC" },
                 "InternetGatewayId" : { "Ref" : "CreateFlowTestIGW"}
             }
-        }
+        },
+        "FlowTestEC2SG" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "DependsOn" : "CreateFlowTestVPC",
+            "Properties" : {
+                "GroupDescription" : "Basic SG for allowing SSH",
+                "GroupName" : "SSH",
+                "SecurityGroupEgress" : "0.0.0.0/0",
+                "SecurityGroupIngress" : {"Ref" : "SGInboundParameter"},
+                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ],
+                "VpcId" : {"Ref" : "CreateFlowTestVPC"}
+              }
+          },
+        "FlowTestEC2" : {
+            "Type" : "AWS::EC2::Instance",
+            "DependsOn" : [{"Ref" : "FlowTestEC2SG"}, {"Ref" : "CreateFlowTestSubnet"} ],
+            "Properties" : {
+                "ImageId" : "ami-062f7200baf2fa504",
+                "InstanceType" : "t2.micro",
+                "KeyName" : {"Ref" : "EC2KeyParameter"},
+                "SecurityGroupIds" : {"Ref" : "FlowTestEC2SG"},
+                "SubnetId" : "CreateFlowTestSubnet",
+                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
+              }
+          }
     }
 }
