@@ -17,8 +17,6 @@
             "Type" : "AWS::EC2::VPC",
             "Properties" : {
                 "CidrBlock" : "10.0.0.0/16",
-                "EnableDnsHostnames" : "true",
-                "EnableDnsSupport" : "true",
                 "InstanceTenancy" : "default",
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
             }
@@ -35,7 +33,7 @@
             "Properties" : {
                 "AvailabilityZone" : "us-east-1a",
                 "CidrBlock" : "10.0.1.0/24",
-                "MapPublicIpOnLaunch" : "false",
+                "MapPublicIpOnLaunch" : "true",
                 "VpcId" : { "Ref" : "CreateFlowTestVPC" },
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
             }
@@ -65,7 +63,15 @@
                 "InternetGatewayId" : { "Ref" : "CreateFlowTestIGW"}
             }
         },
-        "FlowTestEC2SG" : {
+        "AttachRouteTable" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "DependsOn" : ["CreateFlowTestRouteTable", "CreateFlowTestSubnet"],
+            "Properties" : {
+                "RouteTableId" : { "Ref" : "CreateFlowTestRouteTable" },
+                "SubnetId" : {"Ref" : "CreateFlowTestSubnet" }
+              }
+          },
+        "CreateFlowTestEC2SG" : {
             "Type" : "AWS::EC2::SecurityGroup",
             "DependsOn" : "CreateFlowTestVPC",
             "Properties" : {
@@ -79,7 +85,7 @@
           },
         "FlowTestEC2" : {
             "Type" : "AWS::EC2::Instance",
-            "DependsOn" : ["FlowTestEC2SG", "CreateFlowTestSubnet"],
+            "DependsOn" : ["CreateFlowTestEC2SG", "CreateFlowTestSubnet"],
             "Properties" : {
                 "ImageId" : "ami-062f7200baf2fa504",
                 "InstanceType" : "t2.micro",
