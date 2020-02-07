@@ -40,7 +40,8 @@
         },
         "CreateFlowTestRouteTable" : {
             "Type" : "AWS::EC2::RouteTable",
-            "DependsOn" : "CreateFlowTestVPC",
+            "DependsOn" : ["CreateFlowTestVPC", "CreateFlowTestSubnet"],
+            "Metadata" : {"Comment" : "Interestingly enough, it seems like the route table was not being deleted until after the VPC was being attempted to be deleted so it was breaking the delete.  By adding the depends on, the resources are now cleaning up properly on delete"},
             "Properties" : {
                 "VpcId" : {"Ref" : "CreateFlowTestVPC"},
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
@@ -71,12 +72,12 @@
                 "SubnetId" : {"Ref" : "CreateFlowTestSubnet" }
               }
           },
-        "CreateFlowTestEC2SG" : {
+        "CreateSG" : {
             "Type" : "AWS::EC2::SecurityGroup",
             "DependsOn" : "CreateFlowTestVPC",
+            "Metadata" : {"Comment" : "Kept getting the error that the parameter groupName cannot be used wit hteh parameter subnet.  Well this error was confusing.  Removed parameter groupName, same error. put groupName back.  Changed Ref to fn::GetAtt because suggested on internet, same error.  removed groupName and used fn::GetAtt and it then got the same error again...so finally changed the parameter in the ec2 instance from SecurityGroups to SecurityGroupIds  worked.  Really lacking in the docs on this one"},
             "Properties" : {
                 "GroupDescription" : "Basic SG for allowing SSH",
-                "GroupName" : "SSH",
                 "SecurityGroupEgress" : [ { "CidrIp" : "0.0.0.0/0", "Description" : "Basic SG for Outbound All", "IpProtocol" : "-1" } ],
                 "SecurityGroupIngress" : [ { "CidrIp" : { "Ref" : "SGInboundCIDRParameter" }, "Description" : "Basic SG for Inbound SSH", "IpProtocol" : "tcp" ,"FromPort" : 22, "ToPort" : 22}],
                 "VpcId" : {"Ref" : "CreateFlowTestVPC"},
@@ -85,12 +86,13 @@
           },
         "FlowTestEC2" : {
             "Type" : "AWS::EC2::Instance",
-            "DependsOn" : ["CreateFlowTestEC2SG", "CreateFlowTestSubnet"],
+            "DependsOn" : ["CreateSG", "CreateFlowTestSubnet"],
             "Properties" : {
                 "ImageId" : "ami-062f7200baf2fa504",
                 "InstanceType" : "t2.micro",
                 "KeyName" : {"Ref" : "EC2KeyParameter"},
                 "SubnetId" : {"Ref" : "CreateFlowTestSubnet"},
+                "SecurityGroupIds" : [{ "Fn::GetAtt" : ["CreateSG", "GroupId"] }],
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
               }
           }
