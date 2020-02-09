@@ -13,7 +13,7 @@
         }
     },
     "Resources" : {
-        "CreateFlowTestVPC" : {
+        "CreateVPC" : {
             "Type" : "AWS::EC2::VPC",
             "Properties" : {
                 "CidrBlock" : "10.0.0.0/16",
@@ -21,77 +21,76 @@
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
             }
         },
-        "CreateFlowTestIGW" : {
+        "CreateIGW" : {
             "Type" : "AWS::EC2::InternetGateway",
             "Properties" : {
                 "Tags" : [ { "Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
             }
         },
-        "CreateFlowTestSubnet" : {
+        "CreateSubnet" : {
             "Type" : "AWS::EC2::Subnet",
-            "DependsOn" : "CreateFlowTestVPC",
+            "DependsOn" : "CreateVPC",
             "Properties" : {
-                "AvailabilityZone" : "us-east-1a",
                 "CidrBlock" : "10.0.1.0/24",
                 "MapPublicIpOnLaunch" : "true",
-                "VpcId" : { "Ref" : "CreateFlowTestVPC" },
+                "VpcId" : { "Ref" : "CreateVPC" },
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
             }
         },
-        "CreateFlowTestRouteTable" : {
+        "CreateRouteTable" : {
             "Type" : "AWS::EC2::RouteTable",
-            "DependsOn" : ["CreateFlowTestVPC", "CreateFlowTestSubnet"],
+            "DependsOn" : ["CreateVPC", "CreateSubnet"],
             "Metadata" : {"Comment" : "Interestingly enough, it seems like the route table was not being deleted until after the VPC was being attempted to be deleted so it was breaking the delete.  By adding the depends on, the resources are now cleaning up properly on delete"},
             "Properties" : {
-                "VpcId" : {"Ref" : "CreateFlowTestVPC"},
+                "VpcId" : {"Ref" : "CreateVPC"},
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
             }
         },
-        "CreateFlowTestRoute" : { 
+        "CreateRoute" : { 
             "Type" : "AWS::EC2::Route",
-            "DependsOn" : "CreateFlowTestRouteTable",
+            "DependsOn" : "CreateRouteTable",
             "Properties" : {
                 "DestinationCidrBlock" : "0.0.0.0/0",
-                "GatewayId" : { "Ref" : "CreateFlowTestIGW"},
-                "RouteTableId" : {"Ref" : "CreateFlowTestRouteTable"}
+                "GatewayId" : { "Ref" : "CreateIGW"},
+                "RouteTableId" : {"Ref" : "CreateRouteTable"}
                 }
         },
-        "AttachFlowTestIGW" : {
+        "AttachIGW" : {
             "Type" : "AWS::EC2::VPCGatewayAttachment",
-            "DependsOn" : "CreateFlowTestVPC",
+            "DependsOn" : "CreateVPC",
             "Properties" : {
-                "VpcId" : { "Ref" : "CreateFlowTestVPC" },
-                "InternetGatewayId" : { "Ref" : "CreateFlowTestIGW"}
+                "VpcId" : { "Ref" : "CreateVPC" },
+                "InternetGatewayId" : { "Ref" : "CreateIGW"}
             }
         },
         "AttachRouteTable" : {
             "Type" : "AWS::EC2::SubnetRouteTableAssociation",
-            "DependsOn" : ["CreateFlowTestRouteTable", "CreateFlowTestSubnet"],
+            "DependsOn" : ["CreateRouteTable", "CreateSubnet"],
             "Properties" : {
-                "RouteTableId" : { "Ref" : "CreateFlowTestRouteTable" },
-                "SubnetId" : {"Ref" : "CreateFlowTestSubnet" }
+                "RouteTableId" : { "Ref" : "CreateRouteTable" },
+                "SubnetId" : {"Ref" : "CreateSubnet" }
               }
           },
         "CreateSG" : {
             "Type" : "AWS::EC2::SecurityGroup",
-            "DependsOn" : "CreateFlowTestVPC",
+            "DependsOn" : "CreateVPC",
             "Metadata" : {"Comment" : "Kept getting the error that the parameter groupName cannot be used wit hteh parameter subnet.  Well this error was confusing.  Removed parameter groupName, same error. put groupName back.  Changed Ref to fn::GetAtt because suggested on internet, same error.  removed groupName and used fn::GetAtt and it then got the same error again...so finally changed the parameter in the ec2 instance from SecurityGroups to SecurityGroupIds  worked.  Really lacking in the docs on this one"},
             "Properties" : {
                 "GroupDescription" : "Basic SG for allowing SSH",
                 "SecurityGroupEgress" : [ { "CidrIp" : "0.0.0.0/0", "Description" : "Basic SG for Outbound All", "IpProtocol" : "-1" } ],
                 "SecurityGroupIngress" : [ { "CidrIp" : { "Ref" : "SGInboundCIDRParameter" }, "Description" : "Basic SG for Inbound SSH", "IpProtocol" : "tcp" ,"FromPort" : 22, "ToPort" : 22}],
-                "VpcId" : {"Ref" : "CreateFlowTestVPC"},
+                "VpcId" : {"Ref" : "CreateVPC"},
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
               }
           },
-        "FlowTestEC2" : {
+        "CreateEC2" : {
             "Type" : "AWS::EC2::Instance",
-            "DependsOn" : ["CreateSG", "CreateFlowTestSubnet"],
+            "DependsOn" : ["CreateSG", "CreateSubnet"],
             "Properties" : {
                 "ImageId" : "ami-062f7200baf2fa504",
                 "InstanceType" : "t2.micro",
                 "KeyName" : {"Ref" : "EC2KeyParameter"},
-                "SubnetId" : {"Ref" : "CreateFlowTestSubnet"},
+                "SubnetId" : {"Ref" : "CreateSubnet"},
                 "SecurityGroupIds" : [{ "Fn::GetAtt" : ["CreateSG", "GroupId"] }],
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
               }
