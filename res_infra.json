@@ -92,8 +92,9 @@
                 "KeyName" : {"Ref" : "EC2KeyParameter"},
                 "SubnetId" : {"Ref" : "CreateSubnet"},
                 "SecurityGroupIds" : [{ "Fn::GetAtt" : ["CreateSG", "GroupId"] }],
+                "UserData" : "IyEvYmluL2Jhc2gKeXVtIHVwZGF0ZSAteQp5dW0gaW5zdGFsbCBweXRob24tcGlwIC15CnBpcCBpbnN0YWxsIC0tcHJlIHNjYXB5W2Jhc2ljXQo=",
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
               }
           }
-    }
+      }
 }

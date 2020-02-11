@@ -1,0 +1,27 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Description" : "Create infrastructure for the test environment",
+    "Resources" : {
+        "CreateS3" : {
+            "Type" : "AWS::S3::Bucket",
+            "Properties" : {
+                "PublicAccessBlockConfiguration" : {
+                    "BlockPublicAcls" : "True",
+                    "BlockPublicPolicy" : "True",
+                    "IgnorePublicAcls" : "True",
+                    "RestrictPublicBuckets" : "True"
+                  },
+                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
+            }
+        }
+    },
+    "Outputs" : {
+        "BucketName" : {
+            "Description" : "The name of the S3 bucket created for xStack reference",
+            "Value" : { "Fn::GetAtt" : [ "CreateS3","Arn" ] },
+            "Export" : {
+                "Name" : "FlowTestS3Bucket"
+            }
+        }
+    }
+}
