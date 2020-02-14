@@ -10,13 +10,23 @@
             "Description" : "Enter a CIDR range to allow traffic FROM.  No template validation so will break template if invalid",
             "Type" : "String",
             "Default" : "0.0.0.0/0"
+        },
+        "VPCCIDRParameter" : {
+            "Description" : "Enter a CIDR for the VPC (useful if making multiple VPCs)",
+            "Type" : "String",
+            "Default" : "10.0.0.0/16"
+        },
+        "SubnetParameter" : {
+            "Description" : "Enter a CIDR for the Subnet (useful if making multiple VPCs)",
+            "Type" : "String",
+            "Default" : "10.0.0.0/24"
         }
     },
     "Resources" : {
         "CreateVPC" : {
             "Type" : "AWS::EC2::VPC",
             "Properties" : {
-                "CidrBlock" : "10.0.0.0/16",
+                "CidrBlock" : { "Ref" : "VPCCIDRParameter" },
                 "InstanceTenancy" : "default",
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
             }
@@ -31,7 +41,7 @@
             "Type" : "AWS::EC2::Subnet",
             "DependsOn" : "CreateVPC",
             "Properties" : {
-                "CidrBlock" : "10.0.1.0/24",
+                "CidrBlock" : { "Ref" : "SubnetParameter" },
                 "MapPublicIpOnLaunch" : "true",
                 "VpcId" : { "Ref" : "CreateVPC" },
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
@@ -77,8 +87,13 @@
             "Metadata" : {"Comment" : "Kept getting the error that the parameter groupName cannot be used wit hteh parameter subnet.  Well this error was confusing.  Removed parameter groupName, same error. put groupName back.  Changed Ref to fn::GetAtt because suggested on internet, same error.  removed groupName and used fn::GetAtt and it then got the same error again...so finally changed the parameter in the ec2 instance from SecurityGroups to SecurityGroupIds  worked.  Really lacking in the docs on this one"},
             "Properties" : {
                 "GroupDescription" : "Basic SG for allowing SSH",
-                "SecurityGroupEgress" : [ { "CidrIp" : "0.0.0.0/0", "Description" : "Basic SG for Outbound All", "IpProtocol" : "-1" } ],
-                "SecurityGroupIngress" : [ { "CidrIp" : { "Ref" : "SGInboundCIDRParameter" }, "Description" : "Basic SG for Inbound SSH", "IpProtocol" : "tcp" ,"FromPort" : 22, "ToPort" : 22}],
+                "SecurityGroupEgress" : [ 
+                    { "CidrIp" : "0.0.0.0/0", "Description" : "Basic SG for Outbound All", "IpProtocol" : "-1" } 
+                ],
+                "SecurityGroupIngress" : [ 
+                    { "CidrIp" : { "Ref" : "SGInboundCIDRParameter" }, "Description" : "Basic SG for Inbound SSH", "IpProtocol" : "tcp" ,"FromPort" : 22, "ToPort" : 22},
+                    { "CidrIp" : { "Ref" : "SGInboundCIDRParameter" }, "Description" : "Basic SG for Inbound ICMP", "IpProtocol" : "icmp" ,"FromPort" : -1, "ToPort" : -1 } 
+                ],
                 "VpcId" : {"Ref" : "CreateVPC"},
                 "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
               }
