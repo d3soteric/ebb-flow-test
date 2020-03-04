@@ -20,6 +20,11 @@
             "Description" : "Enter a CIDR for the Subnet (useful if making multiple VPCs)",
             "Type" : "String",
             "Default" : "10.0.0.0/24"
+        },
+        "FlowNameParameter" : {
+            "Description" : "Enter a Name for the Flow Log",
+            "Type" : "String",
+            "Default" : "FlowTest"
         }
     },
     "Resources" : {

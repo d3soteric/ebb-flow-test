@@ -1,26 +1,20 @@
 {
     "AWSTemplateFormatVersion" : "2010-09-09",
-    "Description" : "Create infrastructure for the test environment",
+    "Description" : "Create storage for the test environment",
     "Resources" : {
-        "CreateS3" : {
-            "Type" : "AWS::S3::Bucket",
-            "Properties" : {
-                "PublicAccessBlockConfiguration" : {
-                    "BlockPublicAcls" : "True",
-                    "BlockPublicPolicy" : "True",
-                    "IgnorePublicAcls" : "True",
-                    "RestrictPublicBuckets" : "True"
-                  },
-                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
+        "CreateLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+                "RetentionInDays": 7
             }
         }
     },
     "Outputs" : {
-        "BucketName" : {
-            "Description" : "The name of the S3 bucket created for xStack reference",
-            "Value" : { "Fn::GetAtt" : [ "CreateS3","Arn" ] },
+        "LogGroupARN" : {
+            "Description" : "The ARN of the log group created for xStack reference",
+            "Value" : { "Fn::GetAtt" : ["CreateLogGroup", "Arn"] },
             "Export" : {
-                "Name" : "FlowTestS3Bucket"
+                "Name" : "FlowTestLogGroupARN"
             }
         }
     }
