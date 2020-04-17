@@ -3,7 +3,7 @@ Repo for work related to my second research paper for the SANS Technical Institu
 
 the res_infra.json template is a skeleton to get you started with replicating the simulation environment. It includes the VPC, IGW, routetable, route, subnets, security groups and EC2 instances.  Note that one of the EC2 instances includes base64-encoded user data which is executed on startup.  This updates the instance, installs pip and scapy.
 
-RDS, ES, S3 flow logs and the vulnerable test server running on Ubuntu are not included but using the skeleton provided can be built as needed and if desired.
+RDS, ES, S3, flow logs and the vulnerable test server running on Ubuntu are not included but using the skeleton provided can be built as needed and if desired.
 
 Depending on the tests desired to run, additional security group modifications may be required or desired.
 
