@@ -6,25 +6,30 @@
             "Description" : "Enter the SSH key to be used to access the instance",
             "Type" : "AWS::EC2::KeyPair::KeyName"
         },
+        "SSHParameter" : {
+            "Description" : "Enter the IP address of the system administrating your EC2 systems",
+            "Type" : "String",
+            "Default" : "192.168.1.1/32"
+        },
         "SGInboundCIDRParameter" : {
-            "Description" : "Enter a CIDR range to allow traffic FROM.  No template validation so will break template if invalid",
+            "Description" : "Optionally, enter a CIDR range to allow traffic FROM.  You can specify the sender-receiver IP or you can leave it as 0.0.0.0/0",
+            "Type" : "String",
+            "Default" : "0.0.0.0/0"
+        },
+        "SGOutboundCIDRParameter" : {
+            "Description" : "Optionally, enter a CIDR range to allow traffic FROM.  You can specify the reflector IP or you can leave it as 0.0.0.0/0",
             "Type" : "String",
             "Default" : "0.0.0.0/0"
         },
         "VPCCIDRParameter" : {
-            "Description" : "Enter a CIDR for the VPC (useful if making multiple VPCs)",
+            "Description" : "Optionally, enter a CIDR for the VPC (useful if making multiple VPCs)",
             "Type" : "String",
             "Default" : "10.0.0.0/16"
         },
         "SubnetParameter" : {
-            "Description" : "Enter a CIDR for the Subnet (useful if making multiple VPCs)",
+            "Description" : "Optionally, enter a CIDR for the Subnet (useful if making multiple VPCs)",
             "Type" : "String",
             "Default" : "10.0.0.0/24"
-        },
-        "FlowNameParameter" : {
-            "Description" : "Enter a Name for the Flow Log",
-            "Type" : "String",
-            "Default" : "FlowTest"
         }
     },
     "Resources" : {
@@ -86,34 +91,66 @@
                 "SubnetId" : {"Ref" : "CreateSubnet" }
               }
           },
-        "CreateSG" : {
+          "SGReflector" : {
             "Type" : "AWS::EC2::SecurityGroup",
             "DependsOn" : "CreateVPC",
-            "Metadata" : {"Comment" : "Kept getting the error that the parameter groupName cannot be used wit hteh parameter subnet.  Well this error was confusing.  Removed parameter groupName, same error. put groupName back.  Changed Ref to fn::GetAtt because suggested on internet, same error.  removed groupName and used fn::GetAtt and it then got the same error again...so finally changed the parameter in the ec2 instance from SecurityGroups to SecurityGroupIds  worked.  Really lacking in the docs on this one"},
+            "Metadata" : {"Comment" : "Kept getting the error that the parameter groupName cannot be used with the parameter subnet. Removed parameter groupName, same error. put groupName back.  Changed Ref to fn::GetAtt because suggested on internet, same error.  removed groupName and used fn::GetAtt and it then got the same error again...so finally changed the parameter in the ec2 instance from SecurityGroups to SecurityGroupIds, then i was able to successfully use the GroupName param."},
             "Properties" : {
-                "GroupDescription" : "Basic SG for allowing SSH",
-                "SecurityGroupEgress" : [ 
-                    { "CidrIp" : "0.0.0.0/0", "Description" : "Basic SG for Outbound All", "IpProtocol" : "-1" } 
+                "GroupName" : "NoOutbound_RSVPInbound",
+                "GroupDescription" : "This SG allows for no outbound traffic.  It allows only protocol 134, RSVP, inbound and protocol 255 to localhost to overwrite default SG",
+                "SecurityGroupEgress" : [
+                    {"CidrIp": "127.0.0.1/32", "IpProtocol": "255"}
                 ],
                 "SecurityGroupIngress" : [ 
-                    { "CidrIp" : { "Ref" : "SGInboundCIDRParameter" }, "Description" : "Basic SG for Inbound SSH", "IpProtocol" : "tcp" ,"FromPort" : 22, "ToPort" : 22},
-                    { "CidrIp" : { "Ref" : "SGInboundCIDRParameter" }, "Description" : "Basic SG for Inbound ICMP", "IpProtocol" : "icmp" ,"FromPort" : -1, "ToPort" : -1 } 
+                    { "CidrIp" : { "Ref" : "SGInboundCIDRParameter" }, "Description" : "RSVP Inbound", "IpProtocol" : "134"} 
                 ],
                 "VpcId" : {"Ref" : "CreateVPC"},
-                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
+                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} }, {"Key" : "Name", "Value" : "NoOutbound_RSVPInbound"} ]
               }
           },
-        "CreateEC2" : {
+        "SGSenderReceiver" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "DependsOn" : "CreateVPC",
+            "Metadata" : {"Comment" : "Kept getting the error that the parameter groupName cannot be used with the parameter subnet. Removed parameter groupName, same error. put groupName back.  Changed Ref to fn::GetAtt because suggested on internet, same error.  removed groupName and used fn::GetAtt and it then got the same error again...so finally changed the parameter in the ec2 instance from SecurityGroups to SecurityGroupIds, then i was able to successfully use the GroupName param."},
+            "Properties" : {
+                "GroupName" : "SSHandRSVPOutbound_SSHInbound",
+                "GroupDescription" : "Basic SG for allowing SSH",
+                "SecurityGroupEgress" : [ 
+                    { "CidrIp" : { "Ref" : "SSHParameter" }, "Description" : "SSH from single host", "IpProtocol" : "tcp" ,"FromPort" : 22, "ToPort" : 22}, 
+                    { "CidrIp" : "0.0.0.0/0", "Description" : "yum", "IpProtocol" : "tcp" ,"FromPort" : 80, "ToPort" : 80},
+                    { "CidrIp" : "0.0.0.0/0", "Description" : "pip", "IpProtocol" : "tcp" ,"FromPort" : 443, "ToPort" : 443},
+                    { "CidrIp" : { "Ref" : "SGOutboundCIDRParameter" }, "Description" : "RSVP Outbound", "IpProtocol" : "134"}
+                ],
+                "SecurityGroupIngress" : [ 
+                    { "CidrIp" : { "Ref" : "SSHParameter" }, "Description" : "SSH from single host", "IpProtocol" : "tcp" ,"FromPort" : 22, "ToPort" : 22}
+                ],
+                "VpcId" : {"Ref" : "CreateVPC"},
+                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} }, {"Key" : "Name", "Value" : "SSHandRSVPOutbound_SSHInbound"} ]
+              }
+          },
+        "CreateReflector" : {
             "Type" : "AWS::EC2::Instance",
-            "DependsOn" : ["CreateSG", "CreateSubnet"],
+            "DependsOn" : ["SGReflector", "CreateSubnet"],
             "Properties" : {
                 "ImageId" : "ami-062f7200baf2fa504",
                 "InstanceType" : "t2.micro",
                 "KeyName" : {"Ref" : "EC2KeyParameter"},
                 "SubnetId" : {"Ref" : "CreateSubnet"},
-                "SecurityGroupIds" : [{ "Fn::GetAtt" : ["CreateSG", "GroupId"] }],
-                "UserData" : "IyEvYmluL2Jhc2gKeXVtIHVwZGF0ZSAteQp5dW0gaW5zdGFsbCBweXRob24tcGlwIC15CnBpcCBpbnN0YWxsIC0tcHJlIHNjYXB5W2Jhc2ljXQo=",
-                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} } ]
+                "SecurityGroupIds" : [{ "Fn::GetAtt" : ["SGReflector", "GroupId"] }],
+                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} }, {"Key" : "Name", "Value" : "reflector"}  ]
+              }
+          },
+        "CreateSenderReceiver" : {
+            "Type" : "AWS::EC2::Instance",
+            "DependsOn" : ["SGSenderReceiver", "CreateSubnet"],
+            "Properties" : {
+                "ImageId" : "ami-062f7200baf2fa504",
+                "InstanceType" : "t2.micro",
+                "KeyName" : {"Ref" : "EC2KeyParameter"},
+                "SubnetId" : {"Ref" : "CreateSubnet"},
+                "SecurityGroupIds" : [{ "Fn::GetAtt" : ["SGSenderReceiver", "GroupId"] }],
+                "UserData" : "IyEvYmluL2Jhc2gKc3VkbyB5dW0gdXBkYXRlIC15CnN1ZG8geXVtIGluc3RhbGwgcHl0aG9uLXBpcCAteQpzdWRvIHBpcCBpbnN0YWxsIC0tcHJlIHNjYXB5W2Jhc2ljXQ==",
+                "Tags" : [ {"Key" : "stack", "Value" : { "Ref" : "AWS::StackName"} }, {"Key" : "Name", "Value" : "sender-receiver"}  ]
               }
           }
       }
