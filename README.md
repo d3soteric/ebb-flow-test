@@ -1,5 +1,5 @@
-# RES5901: Ebb and Flow
-Repo for work related to my second research paper for the SANS Technical Institute MSISE program shared for educational purposes only.  No warranty/responsibility of any kind implied or otherwise accepted by the original author, user is liable for what they do with any of the resources they may produce from this template, use at your own risk and I hope it is helpful and informative.
+# Ebb and Flow
+Shared for educational purposes only.  No warranty/responsibility of any kind implied or otherwise accepted by the original author, user is liable for what they do with any of the resources they may produce from this template, use at your own risk and I hope it is helpful and informative.
 
 the res_infra.json template is a skeleton to get you started with replicating the simulation environment. It includes the VPC, IGW, routetable, route, subnets, security groups and EC2 instances.  Note that one of the EC2 instances includes base64-encoded user data which is executed on startup.  This updates the instance, installs pip and scapy.
 
